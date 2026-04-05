@@ -1,9 +1,11 @@
 --[[
     MADE BY PETERCOE 
     v53.1 Portal Master: THE RETURN OF THE GUI
+    - MODIFICADO: Tecla de fechar alterada para - (Menos)
     - MODIFICADO: Tecla de minimizar alterada para K
     - CORREÇÃO: Portal deitado no chão (isFlat = true)
     - MODIFICADO: Tecla de viagem T
+    - ADICIONADO: Sistema anti-spam
 ]]
 
 -- = :::: BLOQUEIO DE EXECUÇÃO ÚNICA :::: =
@@ -26,6 +28,7 @@ local camera = workspace.CurrentCamera
 local selectedPlayer = nil 
 local isGuiVisible = false
 local running = true 
+local isCooldown = false 
 
 -- = :::: FUNÇÃO AUXILIAR DE CÂMERA :::: =
 local function lockCameraTo(targetCFrame, duration)
@@ -76,6 +79,26 @@ local function playEffectSound(id, volume)
     sound.SoundId = id; sound.Volume = volume or 0.6
     sound.Parent = game:GetService("SoundService"); sound:Play()
     sound.Ended:Connect(function() sound:Destroy() end)
+end
+
+-- = :::: NOTIFICAÇÃO ANTI-SPAM :::: =
+local function notifySpam()
+    local notif = Instance.new("TextLabel", PlayerGui:FindFirstChild("PortalDraggable"))
+    notif.Size = UDim2.new(0, 200, 0, 40)
+    notif.Position = UDim2.new(0.5, -100, 0.85, 0)
+    notif.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    notif.TextColor3 = Color3.new(1, 1, 1)
+    notif.Text = "não spamma boboca"
+    notif.Font = Enum.Font.GothamBold
+    notif.TextSize = 16
+    Instance.new("UICorner", notif).CornerRadius = UDim.new(0, 8)
+    
+    TweenService:Create(notif, TweenInfo.new(0.4, Enum.EasingStyle.BackOut), {Position = UDim2.new(0.5, -100, 0.75, 0)}):Play()
+    task.delay(1.2, function()
+        local t = TweenService:Create(notif, TweenInfo.new(0.4), {TextTransparency = 1, BackgroundTransparency = 1})
+        t:Play()
+        t.Completed:Connect(function() notif:Destroy() end)
+    end)
 end
 
 -- = :::: SISTEMA DE PARTÍCULAS :::: =
@@ -141,9 +164,14 @@ end
 
 -- = :::: TECLA T :::: =
 local function createLinkPortals()
-    if not running or not localPlayer.Character then return end
+    if not running or not localPlayer.Character or isCooldown then 
+        if isCooldown then notifySpam() end
+        return 
+    end
+    
+    isCooldown = true
     local character = localPlayer.Character; local root = character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
+    if not root then isCooldown = false return end
 
     local entryPos = root.CFrame * CFrame.new(0, -3.1, -10) 
     
@@ -195,11 +223,18 @@ local function createLinkPortals()
             task.delay(0.6, function() part.CanCollide = data.CanCollide end)
         end
     end
+    
+    task.delay(2, function() isCooldown = false end) 
 end
 
 -- = :::: MOUSE 3 :::: =
 local function realisticTeleport()
-    if not running or not selectedPlayer or not selectedPlayer.Character then return end
+    if not running or not selectedPlayer or not selectedPlayer.Character or isCooldown then 
+        if isCooldown then notifySpam() end
+        return 
+    end
+
+    isCooldown = true
     local myChar = localPlayer.Character; local targetChar = selectedPlayer.Character
     local myRoot = myChar:FindFirstChild("HumanoidRootPart"); local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
     
@@ -228,6 +263,8 @@ local function realisticTeleport()
             end end
         end
     end
+    
+    task.delay(1.5, function() isCooldown = false end) 
 end
 
 -- = :::: INTERFACE :::: =
@@ -250,7 +287,7 @@ makeDraggable(infoFrame)
 local title = Instance.new("TextLabel", mainFrame); title.Size = UDim2.new(1, 0, 0, 60); title.BackgroundTransparency = 1; title.Text = "TELEPORTE"; title.TextColor3 = Color3.fromRGB(0, 150, 255); title.Font = Enum.Font.LuckiestGuy; title.TextSize = 32; applyFooter(mainFrame)
 local infoTitle = Instance.new("TextLabel", infoFrame); infoTitle.Size = UDim2.new(1, 0, 0, 50); infoTitle.BackgroundTransparency = 1; infoTitle.Text = "INFORMAÇÕES BÁSICAS"; infoTitle.TextColor3 = Color3.fromRGB(0, 150, 255); infoTitle.Font = Enum.Font.GothamBlack; infoTitle.TextSize = 18; applyFooter(infoFrame)
 local infoText = Instance.new("TextLabel", infoFrame); infoText.Size = UDim2.new(1, -40, 1, -120); infoText.Position = UDim2.new(0, 20, 0, 50); infoText.BackgroundTransparency = 1; infoText.TextColor3 = Color3.new(1,1,1); infoText.TextSize = 14; infoText.Font = Enum.Font.GothamMedium; infoText.TextWrapped = true; infoText.TextXAlignment = Enum.TextXAlignment.Left; 
-infoText.Text = "• Scroll do mouse : teleporte clássico\n\n• K: minimiza o gui\n\n• T: viagem sequencial pelo chão\n\n• DELETE: fecha definitivamente o gui"
+infoText.Text = "• Scroll do mouse : teleporte clássico\n\n• K: minimiza o gui\n\n• T: viagem sequencial pelo chão\n\n• - (MENOS): fecha definitivamente o gui"
 
 local closeInfo = Instance.new("TextButton", infoFrame); closeInfo.Size = UDim2.new(0.6, 0, 0, 35); closeInfo.Position = UDim2.new(0.2, 0, 1, -70); closeInfo.BackgroundColor3 = Color3.fromRGB(0, 150, 255); closeInfo.TextColor3 = Color3.new(1,1,1); closeInfo.Font = Enum.Font.GothamBold; Instance.new("UICorner", closeInfo).CornerRadius = UDim.new(0, 8)
 closeInfo.AutoButtonColor = false
@@ -341,7 +378,13 @@ end)
 -- = :::: EVENTOS DE INPUT :::: =
 UserInputService.InputBegan:Connect(function(input, processed)
     if not running then return end
-    if input.KeyCode == Enum.KeyCode.Delete then dramaticShutdown(); return end
+    
+    -- TECLA DE FECHAMENTO ALTERADA PARA - (MINUS)
+    if input.KeyCode == Enum.KeyCode.Minus then 
+        dramaticShutdown() 
+        return 
+    end
+    
     if not processed then
         if input.UserInputType == Enum.UserInputType.MouseButton3 then 
             realisticTeleport()
