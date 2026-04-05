@@ -6,6 +6,14 @@
     - MODIFICADO: Tecla de viagem T
 ]]
 
+-- = :::: BLOQUEIO DE EXECUÇÃO ÚNICA :::: =
+local PlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+if PlayerGui:FindFirstChild("PortalDraggable") then 
+    warn("Portal Master já está em execução!")
+    return 
+end
+-- ======================================== =
+
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -115,7 +123,7 @@ local function createRealisticPortal(pos, isFlat, duration)
 
     local conn; conn = RunService.Heartbeat:Connect(function()
         if not edge or not edge.Parent then conn:Disconnect() return end
-        edge.CFrame = edge.CFrame * CFrame.Angles(math.rad(4), 0, 0)
+        edge.CFrame = edge.CFrame * CFrame.new(0, 0, 0) * CFrame.Angles(math.rad(4), 0, 0)
         edge.Size = Vector3.new(0.1, 8.8 + math.sin(tick() * 20) * 0.2, 8.8 + math.sin(tick() * 20) * 0.2)
     end)
 
@@ -223,7 +231,7 @@ local function realisticTeleport()
 end
 
 -- = :::: INTERFACE :::: =
-local screenGui = Instance.new("ScreenGui", localPlayer:WaitForChild("PlayerGui"))
+local screenGui = Instance.new("ScreenGui", PlayerGui)
 screenGui.Name = "PortalDraggable"; screenGui.ResetOnSpawn = false
 
 local function applyFooter(frame)
@@ -242,10 +250,8 @@ makeDraggable(infoFrame)
 local title = Instance.new("TextLabel", mainFrame); title.Size = UDim2.new(1, 0, 0, 60); title.BackgroundTransparency = 1; title.Text = "TELEPORTE"; title.TextColor3 = Color3.fromRGB(0, 150, 255); title.Font = Enum.Font.LuckiestGuy; title.TextSize = 32; applyFooter(mainFrame)
 local infoTitle = Instance.new("TextLabel", infoFrame); infoTitle.Size = UDim2.new(1, 0, 0, 50); infoTitle.BackgroundTransparency = 1; infoTitle.Text = "INFORMAÇÕES BÁSICAS"; infoTitle.TextColor3 = Color3.fromRGB(0, 150, 255); infoTitle.Font = Enum.Font.GothamBlack; infoTitle.TextSize = 18; applyFooter(infoFrame)
 local infoText = Instance.new("TextLabel", infoFrame); infoText.Size = UDim2.new(1, -40, 1, -120); infoText.Position = UDim2.new(0, 20, 0, 50); infoText.BackgroundTransparency = 1; infoText.TextColor3 = Color3.new(1,1,1); infoText.TextSize = 14; infoText.Font = Enum.Font.GothamMedium; infoText.TextWrapped = true; infoText.TextXAlignment = Enum.TextXAlignment.Left; 
--- TEXTO ATUALIZADO ABAIXO:
 infoText.Text = "• Scroll do mouse : teleporte clássico\n\n• K: minimiza o gui\n\n• T: viagem sequencial pelo chão\n\n• DELETE: fecha definitivamente o gui"
 
--- = :::: BOTÃO COM TIMER :::: =
 local closeInfo = Instance.new("TextButton", infoFrame); closeInfo.Size = UDim2.new(0.6, 0, 0, 35); closeInfo.Position = UDim2.new(0.2, 0, 1, -70); closeInfo.BackgroundColor3 = Color3.fromRGB(0, 150, 255); closeInfo.TextColor3 = Color3.new(1,1,1); closeInfo.Font = Enum.Font.GothamBold; Instance.new("UICorner", closeInfo).CornerRadius = UDim.new(0, 8)
 closeInfo.AutoButtonColor = false
 
@@ -332,7 +338,7 @@ closeInfo.MouseButton1Click:Connect(function()
     end
 end)
 
--- = :::: EVENTOS DE INPUT (MODIFICADO PARA TECLA K) :::: =
+-- = :::: EVENTOS DE INPUT :::: =
 UserInputService.InputBegan:Connect(function(input, processed)
     if not running then return end
     if input.KeyCode == Enum.KeyCode.Delete then dramaticShutdown(); return end
@@ -341,7 +347,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
             realisticTeleport()
         elseif input.KeyCode == Enum.KeyCode.T then 
             createLinkPortals()
-        elseif input.KeyCode == Enum.KeyCode.K then -- MUDANÇA AQUI (DE LEFTCONTROL PARA K)
+        elseif input.KeyCode == Enum.KeyCode.K then 
             isGuiVisible = not isGuiVisible; toggleGui(mainFrame, uiScale, isGuiVisible) 
         end
     end
